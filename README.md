@@ -25,6 +25,12 @@ installation
 * copy scripts/ to /etc/zabbix/scripts
 * import template
 
+configuration template
+===
+Bareos have restore job which discovery script also add to zabbix, if you don't testore files ofen 
+this job will geave you false positives alarms to avoid it add filter to remove Restore job from 
+discovery 
+
 contributors
 =====
 * Fábio Miguel Mello (me)
