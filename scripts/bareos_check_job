@@ -1,0 +1,86 @@
+#!/bin/bash
+
+## GET DB CONFIG
+getdb_config() {
+  bareos_conf=`sed '/^#/d' /etc/bareos/bareos-dir.d/catalog/MyCatalog.conf`
+  bareos_conf=`echo "$bareos_conf" | grep db*`
+  bareos_conf=`echo "$bareos_conf" | sed 's/ //g' | sed 's/;/\n/g' > /tmp/bareos_conf`
+  source /tmp/bareos_conf
+  DBAddress="localhost"
+}
+
+## GET EACH JOB STATUS, BYTES, LEVEL AND LAST EXECUTION FOR PGSQL
+get_job_param_pgsql()
+{
+  arg1="name='$1'"
+  if [ "$2" == "lastexecution" ]
+  then
+    arg2="EXTRACT(EPOCH FROM NOW()-EndTime)::integer"
+  elif [ "$2" == "jobbytes" ]
+  then
+    arg1="name='$1' AND jobstatus='T' AND level='$3'"
+    arg2=$2
+  elif [ "$2" == "duration" ]
+  then
+    arg1="name='$1' AND jobstatus='T' AND level='$3'"
+    arg2="EXTRACT(EPOCH FROM EndTime-StartTime)::integer"
+  else
+    arg2=$3
+  fi
+  status_job=$(export PGPASSWORD=$dbpassword && /usr/bin/psql -h$DBAddress -U$dbuser -d$dbname -t -c "SELECT $arg2 FROM Job WHERE $arg1 ORDER BY jobid DESC LIMIT 1 OFFSET 0"|xargs)
+  echo $status_job
+}
+
+## GET EACH JOB STATUS, BYTES, LEVEL AND LAST EXECUTION FOR MYSQL
+get_job_param()
+{
+  arg1="name='$1'"
+  if [ "$2" == "lastexecution" ]
+  then
+    arg2="EXTRACT(EPOCH FROM NOW()-EndTime)::integer"
+  elif [ "$2" == "jobbytes" ]
+  then
+    arg1="name='$1' AND jobstatus='T' AND level='$3'"
+    arg2=$2
+  elif [ "$2" == "duration" ]
+  then
+    arg1="name='$1' AND jobstatus='T' AND level='$3'"
+    arg2="EXTRACT(EPOCH FROM EndTime-StartTime)::integer"
+  else
+    arg2=$2
+  fi
+  status_job=$(export PGPASSWORD=$dbpassword && /usr/bin/psql -h$DBAddress -U$dbuser -d$dbname -t -c "SELECT $arg2 FROM Job WHERE $arg1 ORDER BY jobid DESC LIMIT 1 OFFSET 0"|xargs)
+  echo $status_job
+}
+
+get_job_param_mysql()
+{
+  arg1="name='$1'"
+  if [ "$2" == "lastexecution" ]
+  then
+    arg2="TIMESTAMPDIFF(SECOND,EndTime,NOW())"
+  elif [ "$2" == "jobbytes" ]
+  then
+    arg1="name='$1' AND jobstatus='T' AND level='$3'"
+    arg2=$2
+  elif [ "$2" == "duration" ]
+  then
+    arg1="name='$1' AND jobstatus='T' AND level='$3'"
+    arg2="TIMESTAMPDIFF(SECOND,StartTime,EndTime)"
+  else
+    arg2=$2
+  fi
+  status_job=$(/usr/bin/mysql -h$DBAddress -u $dbuser -p$dbpassword -D $dbname -e "SELECT $arg2 FROM Job WHERE $arg1 ORDER BY jobid DESC LIMIT 1 OFFSET 0" --skip-column-names|xargs)
+  echo $status_job
+}
+
+## EXECUTION
+getdb_config
+ISPOSTGRES=$(export PGPASSWORD=$dbpassword && /usr/bin/psql -h$DBAddress -U$dbuser -d$dbname -l 2> /dev/null|grep $dbname|xargs)
+if [ "$ISPOSTGRES" == "" ];then
+  get_job_param_mysql $1 $2 $3
+else
+  get_job_param $1 $2 $3
+fi
+
+rm -f /tmp/bacula_conf
