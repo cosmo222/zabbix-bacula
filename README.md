@@ -1,6 +1,8 @@
-zabbix-bacula
+zabbix-bareos
 ===
-Bacula backups monitoring for Zabbix
+This is fork from khony/zabbix-bacula and edited to run on bareos
+
+Bareos backups monitoring for Zabbix
 
 resources/items/triggers
 ===
@@ -19,7 +21,7 @@ roadmap
 installation
 ===
 * create a sudo entry to execute script
-* copy conf/Bacula.conf to /etc/zabbix/zabbix.agent.d/
+* copy conf/Bareos.conf to /etc/zabbix/zabbix.agent.d/
 * copy scripts/ to /etc/zabbix/scripts
 * import template
 
