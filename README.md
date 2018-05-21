@@ -33,5 +33,5 @@ discovery
 
 contributors
 =====
-* Fábio Miguel Mello (me)
+* Fábio Miguel Mello
 
